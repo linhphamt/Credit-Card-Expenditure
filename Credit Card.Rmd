@@ -1,0 +1,202 @@
+---
+title: "Factors on Average Monthly Credit Card Expenditure"
+author: "Jennifer Pham, STAT 140-01"
+date: "5/8/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+### **1. Summary**
+
+**Research question:** 
+
+Which variables are significant in the linear regression model for the average monthly credit card expenditure of the observations in the data set?
+
+**About the data set 'CreditCard':**
+
+* A data frame containing 1,319 observations on 12 variables, which gives cross-section data on the credit history for a sample of applicants for a type of credit card.
+* List of variables:
+
+  + *card* Factor. Was the application for a credit card accepted?
+  + *reports* Number of major derogatory reports.
+  + *age* Age in years plus twelfths of a year
+  + *income* yearly income (in USD 10,000).
+  + *share* Ratio of monthly credit card expenditure to yearly income.
+  + *expenditure* Average monthly credit card expenditure.
+  + *owner* Factor. Does the individual own their home?
+  + *selfemp* Factor. Is the individual self-employed?
+  + *dependents* Number of dependents.
+  + *months* Months living at current address.
+  + *majorcards* Number of major credit cards held.
+  + *active* Number of active credit accounts.
+
+**Method:** 
+
+Linear Regression - Preform backward elimination in multiple regression model 
+
+By analyzing adjusted R-squared and p-value of each predicted explanatory variables in the dataset, we can iteratively remove the least contributive predictors.
+
+### **2. Analysis of the data set**
+
+```{r,echo=FALSE,message=FALSE}
+library(ggplot2)
+library(car)
+CreditCard=read.csv("CreditCard.csv", header=TRUE);
+CreditCard=CreditCard[CreditCard$expenditure!=0, ]
+expenditure=CreditCard$expenditure
+card=ifelse(CreditCard$card=="yes",1,0)
+reports=CreditCard$reports
+age=CreditCard$age
+income=CreditCard$income
+share=CreditCard$share
+owner=ifelse(CreditCard$owner=="yes",1,0)
+selfemp=ifelse(CreditCard$selfemp=="yes",1,0)
+dependents=CreditCard$dependents
+months=CreditCard$months
+majorcards=CreditCard$majorcards
+active=CreditCard$active
+```
+
+Before creating the model between *expenditure* and its predictors, we convert all categorical variables into numerical variables and remove all observations whose expenditure equals to zero. We also remove the variable *card* since the people whose expenditure larger than 0 all passed the credit card application, so this variable does not add any information to the model. We also remove the variable *share* since it is the ratio between 2 other variables - *expenditure* and *income*.
+
+```{r,echo=FALSE,message=FALSE,out.width="50%"}
+model2=lm(expenditure~reports+age+income+owner+dependents+selfemp+months+majorcards+active)
+summary(model2)
+```
+
+Based on p-value of all predictors in the above model, we can see *reports*, *age*, *income*, *selfemp* and *months* might be good predictors for the linear regression model for *expenditure*. The graphs between *expenditure* and these predictors are listed below.
+
+**1) reports and expenditure**
+```{r,echo=FALSE,results='hide',fig.keep='all', message=FALSE,out.width="70%"}
+ggplot(data = CreditCard, aes(x = reports, y = expenditure)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+  theme_bw()
+```
+
+From the graph, we can see that people with lower the number of derogatory reports tends to have the higher expenditure. Therefore, *reports* might be a good predictor for the linear regression model of *expenditure*.
+
+
+**2) age and expenditure**
+```{r,echo=FALSE,results='hide',fig.keep='all',message=FALSE,out.width="70%"}
+ggplot(data = CreditCard, aes(x = age, y = expenditure)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+  theme_bw()
+```
+
+From the graph, we can see that the age range of most people in this data set is between 20 and 60 years old. This interval also include people with highest expenditure in the data set. Therefore, *age* might be a good predictor for the linear regression model of *expenditure*.
+
+
+**3) income and expenditure**
+```{r,echo=FALSE,results='hide',fig.keep='all',message=FALSE,out.width="70%"}
+ggplot(data = CreditCard, aes(x = income, y = expenditure)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+  theme_bw()
+```
+
+From the graph, we can see that the income range of most people in this data set is between 150,000 and 500,000 USD. Therefore, *income* might be a good predictor for the linear regression model of *expenditure*.
+
+
+**4) selfempt and expenditure**
+```{r,echo=FALSE,results='hide',fig.keep='all',message=FALSE,out.width="70%"}
+ggplot(data = CreditCard, aes(x = selfemp, y = expenditure)) +
+  geom_boxplot() +
+  geom_smooth(method = "lm")
+  theme_bw()
+```
+
+From the graph, we can see that the group of people who are not self-employed have more outliers who spend more than the median. Therefore, *selfemp* might be a good predictor for the linear regression model of *expenditure*.
+
+
+**5) months and expenditure**
+```{r,echo=FALSE,results='hide',fig.keep='all',message=FALSE,out.width="70%"}
+ggplot(data = CreditCard, aes(x = months, y = expenditure)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+  theme_bw()
+```
+
+From the graph, we can see that the group of people just moved to a new address spend more than those who have stayed for a long time. Therefore, *months* might be a good predictor for the linear regression model of *expenditure*.
+
+After analyzing the graphs, we continue with the backward elimination process to iteratively remove the least contributive predictors. We remove *dependents*, *majorcards*, *owner*, *active*, and *month* respectively until the adjusted R-squared stops increasing. Eventually, we got a combination of **4 explanatory variables** - *reports*, *age*, *income*, and *selfemp*.
+
+```{r,echo=FALSE,out.width="60%"}
+model12=lm(expenditure~reports+age+income+selfemp)
+summary(model12)
+```
+
+When performing the formal normality and non-constant variances test, we get the result that the data set are not normally distributed and does not have constant variances. We fix the non-constant variances issue by transforming the response variable value from expenditure to log(expenditure) and get the graphs and results as below for the normality models and *shapiro* and *ncvTest* tests.
+
+```{r,echo=FALSE,results='hide',fig.keep='all',out.width="60%"}
+model=lm(log(expenditure)~reports+age+income+selfemp)
+summary(model)
+```
+
+```{r,echo=FALSE,out.width="50%"}
+## checking linearity
+Residuals = model$residuals
+
+##Normality checking
+hist(Residuals, col="lightblue")
+qqnorm(Residuals, col="lightblue", pch=19)
+qqline(Residuals, col="blue", lwd=2)
+
+#Non-normality Test
+shapiro.test(Residuals)
+
+#Non-constant Variance Test
+ncvTest(model)
+```
+
+We can interpret from the graphs and p-value of shapiro test that the data set is still not normally distributed, but we are able to fix the non-constant variances problem.
+
+### **3. Results**
+The analysis mainly focuses on the relationship between individuals' background and their average monthly credit card expenditure. The method that are applied in this analysis is linear regression. After checking the multiple regression model and the conditions of the data set, we are able to conclude that 4 explanatory variables - *reports*, *age*, *income*, and *selfemp* - are useful to predict the linear regression model for the average monthly credit card expenditure. On the other hand, other variables seem not to have much effect on the linear regression model predicting the average monthly credit card expenditure of the observations in the data set. There are some limitations of the data set that will be discussed later in the discussion part.
+
+### **4. Discussion**
+**Explain the conclusion**
+
+Looking at the summary of the model with 11 explanatory variables, we are able to choose 5 variables with the smallest p-value - *reports* (0.003226), *age* (0.080321), *income* (< 2e-16), *selfemp* (0.105730), and *months* (0.184324)- which we suspect are the most significant variables in the model. After performing backward elimination, the 4 most significant variables whose p-value are the smallest are *reports* (0.001574), *age* (0.000461), *income* (5.01e-15), and *selfemp* (0.045427). Conditions for the model are tested by normality and non-constant variances formal tests. Based on the Histogram of Residuals and Normal QQ Plot, we observe that the normality condition is violated; the distribution of residuals is left-skewed. 
+
+**Limitations of my work**
+
+The method log(expenditure) solves the non-constant variances problem of the data set; however, the errors are still not normally distributed. It will require further knowledge beyond what I have learned in class to solve the normality. problem. Also, the methods used to collect the data are not enough to show that the independence condition is satisfied. Therefore, we might not be able to make inferences to a wider population.  
+
+### **5. References**
+Greene, W.H. (2003). Econometric Analysis, 5th edition. Upper Saddle River, NJ: Prentice Hall.
+
+### **6. Appendix**
+1) Load required packages
+
+* library(ggplot2)
+* library(car)
+
+2) Read the file and remove all values of *expenditure* that are zero
+* CreditCard=read.csv("CreditCard.csv", header=TRUE);
+* CreditCard=CreditCard[CreditCard$expenditure!=0, ]
+
+3) Save the value of each variable, change all categorial variables to numerical variables
+* expenditure=CreditCard$expenditure
+* card=ifelse(CreditCard$card=="yes",1,0)
+* reports=CreditCard$reports
+
+4) Display the summary of the model with multiple variables
+* model=lm(expenditure~reports+age+income+owner+dependents+selfemp+months+majorcards+active)
+* summary(model)
+
+5) Create a graph between reponse variable 'expenditure' with each explanatory variable
+* ggplot(data = CreditCard, aes(x = reports, y = expenditure)) +
+*  geom_point() +
+*  geom_smooth(method = "lm")
+*  theme_bw()
+
+6) Perform normality and non-constant variances tests
+* Residuals = model$residuals
+* hist(Residuals, col="lightblue")
+* qqnorm(Residuals, col="lightblue", pch=19)
+* qqline(Residuals, col="blue", lwd=2)
+* shapiro.test(Residuals)
+* ncvTest(model)
+```
